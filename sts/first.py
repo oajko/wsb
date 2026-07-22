@@ -1,13 +1,12 @@
 import mechanicalsoup
-from bs4 import Comment
-import time
+import selenium
 
-url = "https://www.scrapethissite.com/"
-browser = mechanicalsoup.StatefulBrowser()
+URL = "https://www.scrapethissite.com/pages"
 
-def simple(p):
-    div = p.select_one("section#countries").select_one("div.container")
-
+def simple(link):
+    browser = mechanicalsoup.StatefulBrowser()
+    browser.open(link)
+    div = browser.page.select_one("section#countries").select_one("div.container")
     for row in div.find_all("div", "row"):
         sibling = row.next_sibling
         if sibling != ".row":
@@ -15,67 +14,46 @@ def simple(p):
         for col in row.find_all("div", "col-md-4 country"):
             country = col.find("h3").text.strip()
             info = [j.text for j in col.find("div", "country-info").find_all("span")]
+    browser.close()
 
 
-def forms(page):
-    links = page.page.find("ul", class_ = "pagination")
-    for curr_page in links.find_all("a")[1:]:
-        for row in page.page.find_all("tr", class_ = "team"):
+def forms(link):
+    browser = mechanicalsoup.StatefulBrowser()
+    browser.open(link)
+    page = browser.page
+    for curr_page in page.find("ul", class_ = "pagination").find_all("a")[1:]:
+        for row in page.find_all("tr", class_ = "team"):
             row_contents = [i.text.strip() for i in row.find_all("td")]
-        page.open(f"{url}{curr_page['href'][1:]}")
+            print(row_contents)
+        browser.open(f"{URL}{curr_page['href'][1:]}")
+    browser.close()
 
 
 def javascript(page):
-    """
-    Need Selenium for AJAX-JS
-    """
-    page_url = page.url
-    prev = None
-    links = page.page.find("section").find("div", class_ = "container")
-    for l in links:
-        if isinstance(l, Comment):
-            break
-        prev = l
-    for a in prev.find_all("a"):
-        page.open(f'{page_url}#{a.text}')
-        time.sleep(2)
-        print(page.page.find("tr", class_ = "film"))
-        # pg = page.page.find_all("tbody", id_ = "table-body")
-        # print(pg)
+    options = selenium.webdriver.FirefoxOptions()
 
+    driver = selenium.webdriver.Firefox()
+    driver.get(page)
 
 
 def page_selector(link):
-    page = link.url
-    if "simple" in page:
-        return
-        simple(link.page)
-    elif "forms" in page:
-        return
-        forms(link)
-    elif "ajax-javascript" in page:
-        javascript(link)
-    elif "frames" in page:
-        pass
-    elif "advanced" in page:
-        pass
+    page = f"{URL}/{link}"
+    if "simple" in page: return # simple(page)
+    elif "forms" in page: return # forms(page)
+    elif "ajax-javascript" in page: return # javascript(page)
+    elif "frames" in page: return
+    elif "advanced" in page: return
 
-def init_sandbox():
-    browser.open(url)
-    browser.follow_link("pages")
 
 def main():
-    init_sandbox()
-    links_url = browser.get_url()
-    links = browser.page.find_all("a")
+    N = len("/pages/")
+    browser = mechanicalsoup.StatefulBrowser()
+    browser.open(URL)
+    links = [l["href"] for l in browser.page.find("section").find("div", class_ = "container").find_all("a")]
+    browser.close()
 
     for link in links:
-        href_link = link.get("href")
-        if "/pages/" not in href_link or "/pages/" == href_link:
-            continue
-        browser.follow_link(link)
-        page_selector(browser)
-        browser.open(links_url)
+        page_selector(link[N:])
         
 
 main()

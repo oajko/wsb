@@ -1,0 +1,1 @@
+Static website scraping https://books.toscrape.com/
