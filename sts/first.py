@@ -54,6 +54,7 @@ def javascript(page):
                     t.append(1) if element.find_elements(By.XPATH, ".//*") else t.append(0)
                     continue
                 t.append(element.text)
+    driver.close()
 
 
 def page_selector(link):
