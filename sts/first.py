@@ -1,5 +1,9 @@
 import mechanicalsoup
 import selenium
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
 
 URL = "https://www.scrapethissite.com/pages"
 
@@ -31,16 +35,32 @@ def forms(link):
 
 def javascript(page):
     options = selenium.webdriver.FirefoxOptions()
+    options.add_argument("-headless")
 
-    driver = selenium.webdriver.Firefox()
+    driver = selenium.webdriver.Firefox(options = options)
     driver.get(page)
+    years = driver.find_elements(by = By.CLASS_NAME, value = "year-link")
+    for year in years:
+        driver.execute_script("arguments[0].click()", year)
+        WebDriverWait(driver, 10).until(
+            lambda d: d.find_element(By.CLASS_NAME, "table").value_of_css_property("display") == "table"
+        )
+        rows = driver.find_elements(By.CLASS_NAME, "film")
+        for row in rows:
+            elements = row.find_elements(By.XPATH, "./*")
+            t = []
+            for element in elements:
+                if element.get_attribute("class") == "film-best-picture":
+                    t.append(1) if element.find_elements(By.XPATH, ".//*") else t.append(0)
+                    continue
+                t.append(element.text)
 
 
 def page_selector(link):
     page = f"{URL}/{link}"
     if "simple" in page: return # simple(page)
     elif "forms" in page: return # forms(page)
-    elif "ajax-javascript" in page: return # javascript(page)
+    elif "ajax-javascript" in page: javascript(page)
     elif "frames" in page: return
     elif "advanced" in page: return
 
