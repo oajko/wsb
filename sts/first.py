@@ -101,6 +101,28 @@ def iframes(page):
 
     driver.close()
 
+def header_spoof(page):
+    options = selenium.webdriver.FirefoxOptions()
+    options.add_argument("-headless")
+    driver = selenium.webdriver.Firefox(options = options)
+    driver.get(page)
+    orig = driver.current_window_handle
+
+    driver.find_element(By.CSS_SELECTOR, "h4 a").click()
+    WebDriverWait(driver, 10).until(
+        lambda d: len(d.window_handles) > 1
+    )
+
+    new_window = [w for w in driver.window_handles if w != orig][0]
+    driver.switch_to.window(new_window)
+    
+    WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located((By.CLASS_NAME, "col-md-4"))
+    )
+    good_text = driver.find_element(By.CLASS_NAME, "col-md-4").text
+    print(good_text)
+
+    driver.close()
 
 
 def page_selector(link):
@@ -108,8 +130,8 @@ def page_selector(link):
     if "simple" in page: return # simple(page)
     elif "forms" in page: return # forms(page)
     elif "ajax-javascript" in page: return # javascript(page)
-    elif "frames" in page: iframes(page)
-    elif "advanced" in page: return
+    elif "frames" in page: return # iframes(page)
+    elif "advanced" in page: header_spoof(page)
 
 
 def main():
