@@ -57,12 +57,58 @@ def javascript(page):
     driver.close()
 
 
+def iframes(page):
+    options = selenium.webdriver.FirefoxOptions()
+    options.add_argument("-headless")
+
+    driver = selenium.webdriver.Firefox(options = options)
+    driver.get(page)
+    driver.switch_to.frame(driver.find_element(By.ID, "iframe"))
+    rows = driver.find_elements(By.CLASS_NAME, "row")
+    for i in range(len(rows)):
+        row = driver.find_elements(By.CLASS_NAME, "row")[i]
+        cols = row.find_elements(By.CLASS_NAME, "col-md-4")
+        for j in range(len(cols)):
+            row = driver.find_elements(By.CLASS_NAME, "row")[i]
+            col = row.find_elements(By.CLASS_NAME, "col-md-4")[j]
+
+            click_btn = col.find_element(By.CLASS_NAME, "btn")
+            click_btn.click()
+            WebDriverWait(driver, 10).until(
+                EC.visibility_of_element_located((By.CLASS_NAME, "family-name"))
+            )
+            text_chunk = driver.find_element(By.CLASS_NAME, "lead")
+            title = driver.find_element(By.TAG_NAME, "h3").text.strip()
+            nodes = driver.execute_script("""
+                return Array.from(arguments[0].childNodes).map(n => ({
+                    type:n.nodeType,
+                    name:n.nodeName,
+                    text:n.textContent})
+                )
+            """, text_chunk)
+            text = []
+            for n in nodes:
+                text.append(n['text'].strip())
+            text = " ".join(text)
+            out = {"title": title, "text": text}
+            print(out)
+
+            driver.find_element(By.CLASS_NAME, "btn").click()
+
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CLASS_NAME, "btn"))
+            )
+
+    driver.close()
+
+
+
 def page_selector(link):
     page = f"{URL}/{link}"
     if "simple" in page: return # simple(page)
     elif "forms" in page: return # forms(page)
-    elif "ajax-javascript" in page: javascript(page)
-    elif "frames" in page: return
+    elif "ajax-javascript" in page: return # javascript(page)
+    elif "frames" in page: iframes(page)
     elif "advanced" in page: return
 
 
