@@ -115,7 +115,7 @@ def header_spoof(page):
 
     new_window = [w for w in driver.window_handles if w != orig][0]
     driver.switch_to.window(new_window)
-    
+
     WebDriverWait(driver, 10).until(
         EC.visibility_of_element_located((By.CLASS_NAME, "col-md-4"))
     )
@@ -131,7 +131,7 @@ def page_selector(link):
     elif "forms" in page: return # forms(page)
     elif "ajax-javascript" in page: return # javascript(page)
     elif "frames" in page: return # iframes(page)
-    elif "advanced" in page: header_spoof(page)
+    elif "advanced" in page: return # header_spoof(page)
 
 
 def main():
