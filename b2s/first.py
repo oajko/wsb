@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import TypedDict
 
 URL = "https://books.toscrape.com/catalogue/"
 stars_dict = {"One": 1, "Two": 2, "Three": 3, "Four": 4, "Five": 5}
@@ -42,6 +43,19 @@ def safe(func):
         return None
 
 
+class ScrapeFields(TypedDict):
+    """
+    Book data extracted
+    """
+    genre: str | None
+    title: str | None
+    price: float | None
+    stock_qty: int | None
+    stock_bool: bool | None
+    stars: int | None
+    desc: str | None
+
+
 def scrape_content(book_url):
     """
     Scrape the content of one url.
@@ -50,37 +64,24 @@ def scrape_content(book_url):
         url (str): Url of product page
     
     Return:
-        dict{
-            genre (str): book genre
-            title (str): book title
-            price (float): price of book
-            stock_qty (int): qty of stock available
-            stock_bool (bool): book has available stock
-            stars (int): product rating
-            desc (str): book desc
-        }
+        ScrapeFields
     """
     try:
         page = requests.get(book_url)
         soup = BeautifulSoup(page.text, "html.parser")
 
-        genre = safe(lambda: soup.select("ul.breadcrumb a")[-1].get_text(strip = True))
-        title = safe(lambda: soup.find("h1").get_text(strip = True))
-        price = safe(lambda: float(soup.select_one("p.price_color").get_text(strip = True)[2:]))
-        stock_qty = safe(lambda: int(soup.select_one("p.availability").get_text(strip = True).split(" ")[2][1:]))
-        stock_bool = stock_qty > 0 if stock_qty else None
-        stars = safe(lambda: stars_dict[soup.select_one("p.star-rating")["class"][-1].strip()])
-        desc = safe(lambda: soup.select_one("div#product_description").find_next_sibling().get_text(strip = True))
-        page.close()
-        return {
-            "genre": genre,
-            "title": title,
-            "price": price,
-            "stock_qty": stock_qty,
-            "stock_bool": stock_bool,
-            "stars": stars,
-            "desc": desc
+        storage: ScrapeFields = {
+            "genre": safe(lambda: soup.select("ul.breadcrumb a")[-1].get_text(strip = True)),
+            "title": safe(lambda: soup.find("h1").get_text(strip = True)),
+            "price": safe(lambda: float(soup.select_one("p.price_color").get_text(strip = True)[2:])),
+            "stock_qty": safe(lambda: int(soup.select_one("p.availability").get_text(strip = True).split(" ")[2][1:])),
+            "stars": safe(lambda: stars_dict[soup.select_one("p.star-rating")["class"][-1].strip()]),
+            "desc": safe(lambda: soup.select_one("div#product_description").find_next_sibling().get_text(strip = True))
         }
+        storage["stock_bool"] = storage["stock_qty"] > 0 if storage["stock_qty"] else None
+
+        page.close()
+        return storage
     except:
         return
 
@@ -92,7 +93,7 @@ def thread_pool_scrape(all_urls):
         all_urls(list[str]): A list of book urls to scrape
     
     Returns:
-        list[dict]: A list of scraped books
+        list[ScrapeFields]: A list of scraped books
     """
     all_content = []
     with ThreadPoolExecutor(max_workers = 16) as executor:
@@ -122,8 +123,6 @@ def thread_get_links():
 def main():
     links = thread_get_links()
     contents = thread_pool_scrape(links)
-    # print(contents)
-
 
 if __name__ == "__main__":
     main()
