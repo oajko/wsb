@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TypedDict
 import sqlite3
+import time
+import random
 
 URL = "https://books.toscrape.com/catalogue/"
 stars_dict = {"One": 1, "Two": 2, "Three": 3, "Four": 4, "Five": 5}
@@ -17,6 +19,7 @@ def get_links(url):
     Return:
         List: All book links on the site
     """
+    time.sleep(random.random() * 6)
     all_links = []
     page = requests.get(url)
     soup = BeautifulSoup(page.text, "html.parser")
@@ -67,6 +70,7 @@ def scrape_content(book_url):
     Return:
         ScrapeFields
     """
+    time.sleep(random.random() * 6)
     try:
         page = requests.get(book_url)
         soup = BeautifulSoup(page.text, "html.parser")
