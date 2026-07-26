@@ -1,1 +1,1 @@
-Static website scraping https://books.toscrape.com/
+Scraping bookstoscrape.com with threading speed up
