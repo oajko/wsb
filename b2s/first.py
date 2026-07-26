@@ -5,6 +5,7 @@ from typing import TypedDict
 import sqlite3
 import time
 import random
+import argparse
 
 URL = "https://books.toscrape.com/catalogue/"
 stars_dict = {"One": 1, "Two": 2, "Three": 3, "Four": 4, "Five": 5}
@@ -117,7 +118,7 @@ def thread_get_links():
         list[str]: A list of book urls
     """
     all_links = []
-    page_urls = [f"{URL}page-{i}.html" for i in range(1, 3)]
+    page_urls = [f"{URL}page-{i}.html" for i in range(1, 51)]
     with ThreadPoolExecutor(max_workers = 16) as executor:
         futures = list(map(lambda x: executor.submit(get_links, x), page_urls))
         for f in as_completed(futures):
@@ -125,15 +126,22 @@ def thread_get_links():
     return all_links
 
 
-def main():
+def main(args):
+    """
+    Executes main scraping pipeline
+
+    Args:
+        args (argparse): parsed command-line arguments 
+
+    """
     links = thread_get_links()
     contents = thread_pool_scrape(links)
 
-    connection = sqlite3.connect("books.db")
+    connection = sqlite3.connect(f"{args.db_name}.db")
     cursor = connection.cursor()
 
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS books (
+        CREATE TABLE IF NOT EXISTS {} (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             genre TEXT,
             title TEXT,
@@ -143,13 +151,20 @@ def main():
             desc TEXT,
             stock_bool BOOLEAN
         )
-    """)
+    """.format(args.db_name))
 
     cursor.executemany("""
         INSERT INTO books (genre, title, price, stock_qty, stars, desc, stock_bool) VALUES (?, ?, ?, ?, ?, ?, ?)""",
         [(c['genre'], c['title'], c['price'], c['stock_qty'], c['stars'], c['desc'], c['stock_bool']) for c in contents]
     )
     connection.commit()
+    connection.close()
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--db_name", default = "books")
+
+    args = parser.parse_args()
+    main(args)
+
+    print("done")
